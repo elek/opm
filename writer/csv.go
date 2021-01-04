@@ -49,6 +49,12 @@ func (writer *CsvWriter) Write(data interface{}) error {
 		switch v := value.(type) {
 		case string:
 			values[i] = v
+		case *string:
+			if v == nil {
+				values[i] = ""
+			} else {
+				values[i] = *v
+			}
 		case int:
 			values[i] = strconv.Itoa(v)
 		case int32:

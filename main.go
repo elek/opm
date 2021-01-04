@@ -17,6 +17,8 @@ func main() {
 	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
 	zerolog.SetGlobalLevel(zerolog.DebugLevel)
 
+	runner.App.Name = "Open-source project data downloader"
+	runner.App.Description = "Utility to get base data for metrics about open source project development"
 	runner.App.Commands = append(runner.App.Commands, github.CreateGithubCommand())
 	runner.App.Commands = append(runner.App.Commands, jira.CreateJiraCommand())
 	runner.App.Commands = append(runner.App.Commands, ponymail.CreatePonymailCommand())
