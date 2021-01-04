@@ -1,0 +1,69 @@
+{
+    repository(owner: "apache", name: "hadoop-ozone") {
+        issues(first: 25, orderBy: {field: UPDATED_AT, direction: DESC}) {
+            totalCount
+            pageInfo {
+                endCursor
+                hasNextPage
+            }
+            edges {
+                node {
+                    id
+                    title
+                    number
+                    author {
+                        login
+                    }
+                    createdAt
+                    updatedAt
+                    closed
+                    closedAt
+                    state
+                    lastEditedAt
+                    timelineItems(last:3,itemTypes: CLOSED_EVENT) {
+                        nodes {
+                            __typename
+                            ... on ClosedEvent {
+                                actor {
+                                    login
+                                }
+                                closer {
+                                    __typename
+                                    ... on Commit {
+                                        oid
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    comments(first: 100) {
+                        totalCount
+                        pageInfo {
+                            endCursor
+                            hasNextPage
+                        }
+                        nodes {
+                            author {
+                                login
+                            }
+                            authorAssociation
+                            createdAt
+                        }
+                    }
+                    participants(first: 100) {
+                        pageInfo {
+                            endCursor
+                            hasNextPage
+                        }
+                        edges {
+                            node {
+                                company
+                                login
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

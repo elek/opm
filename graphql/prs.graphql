@@ -1,0 +1,91 @@
+{
+    repository(owner: "apache", name: "hadoop-ozone") {
+        pullRequests(first: 25, orderBy: {field: UPDATED_AT, direction: DESC}) {
+            totalCount
+            pageInfo {
+                endCursor
+                hasNextPage
+            }
+            edges {
+                node {
+                    id
+                    title
+                    number
+                    mergeable
+                    baseRefName
+                    author {
+                        login
+                    }
+                    createdAt
+                    updatedAt
+                    closed
+                    closedAt
+                    merged
+                    mergedAt
+                    mergedBy {
+                        login
+                    }
+                    state
+                    lastEditedAt
+                    isDraft
+                    timelineItems(last:3,itemTypes: CLOSED_EVENT) {
+                        nodes {
+                            __typename
+                            ... on ClosedEvent {
+                                actor {
+                                    login
+                                }
+                                closer {
+                                    __typename
+                                    ... on Commit {
+                                        oid
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    reviews(first: 100) {
+                        totalCount
+                        pageInfo {
+                            endCursor
+                            hasNextPage
+                        }
+                        nodes {
+                            updatedAt
+                            author {
+                                login
+                            }
+                            state
+                        }
+                    }
+                    comments(first: 100) {
+                        totalCount
+                        pageInfo {
+                            endCursor
+                            hasNextPage
+                        }
+                        nodes {
+                            author {
+                                login
+                            }
+                            authorAssociation
+                            createdAt
+                        }
+                    }
+                    participants(first: 100) {
+                        pageInfo {
+                            endCursor
+                            hasNextPage
+                        }
+                        edges {
+                            node {
+                                company
+                                login
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,35 @@
+{
+    organization(login: "apache") {
+        team(slug: "apache-committers") {
+            members {
+                pageInfo {
+                    hasNextPage
+                    endCursor
+                }
+                totalCount
+                edges {
+                    node {
+                        name
+                        login
+                        id
+                        isEmployee
+                        isHireable
+                        websiteUrl
+                        email
+                        location
+                        createdAt
+                        company
+                        bio
+                        organizations(first: 100) {
+                            nodes{
+                                login
+                                name
+                                description
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
