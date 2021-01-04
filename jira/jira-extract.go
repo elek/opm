@@ -14,7 +14,7 @@ import (
 
 func init() {
 	cmd := cli.Command{
-		Name: "extract",
+		Name: "issue",
 		Flags: []cli.Flag{
 			&cli.StringFlag{
 				Name:  "project",
@@ -50,6 +50,11 @@ func jiraExtract(store kv.KV, dir string, project string, format string) error {
 		return err
 	}
 
+	commentOutput, err := writer.NewWriter("jira-comment", format, new(JiraComment))
+	if err != nil {
+		return err
+	}
+
 	if project == "" {
 		repos, err := store.List(ProjectDir())
 		if err != nil {
@@ -58,7 +63,7 @@ func jiraExtract(store kv.KV, dir string, project string, format string) error {
 
 		for _, repo := range repos {
 			log.Info().Msgf("Processing repo %s", repo)
-			err := exportRepo(store, output, repo)
+			err := exportRepo(store, output, commentOutput, repo)
 			if err != nil {
 				return err
 			}
@@ -66,7 +71,7 @@ func jiraExtract(store kv.KV, dir string, project string, format string) error {
 		}
 	} else {
 		log.Info().Msgf("Processing repo %s", IssueDir(project))
-		err := exportRepo(store, output, IssueDir(project))
+		err := exportRepo(store, output, commentOutput, IssueDir(project))
 		if err != nil {
 			return err
 		}
@@ -93,16 +98,18 @@ type JiraIssue struct {
 	Watches         int32         `parquet:"name=watches, type=INT32"`
 	Priority        string        `parquet:"name=priority, type=UTF8, encoding=PLAIN_DICTIONARY"`
 	Parent          *string       `parquet:"name=parent, type=UTF8, encoding=PLAIN"`
-	Comments        []JiraComment `parquet:"name=comments, type=LIST"`
 }
+
 type JiraComment struct {
+	Project       string `parquet:"name=project, type=UTF8, encoding=PLAIN_DICTIONARY"`
+	Key           string `parquet:"name=key, type=UTF8, encoding=PLAIN"`
 	Id            string `parquet:"name=id, type=UTF8, encoding=PLAIN"`
 	AuthorDisplay string `parquet:"name=authorDisplay, type=UTF8, encoding=PLAIN_DICTIONARY"`
 	Author        string `parquet:"name=author, type=UTF8, encoding=PLAIN_DICTIONARY"`
 	Created       int64  `parquet:"name=created, type=TIMESTAMP_MILLIS"`
 }
 
-func exportRepo(store kv.KV, writer writer.Writer, repo string) error {
+func exportRepo(store kv.KV, issueWriter writer.Writer, commentWriter writer.Writer, repo string) error {
 	repoKey := IssueDir(path.Base(repo))
 	progress := util.CreateProgress()
 	prs, err := store.List(repoKey)
@@ -134,22 +141,28 @@ func exportRepo(store kv.KV, writer writer.Writer, repo string) error {
 			Watches:         json.MN32(js, "fields", "watches", "watchCount"),
 			Priority:        json.MS(js, "fields", "priority", "name"),
 			Parent:          json.MSP(js, "fields", "parent", "key"),
-			Comments:        make([]JiraComment, 0),
 		}
+
+		err = issueWriter.Write(issue)
+		if err != nil {
+			return err
+		}
+
 		for _, comment := range json.L(json.M(js, "fields", "comment", "comments")) {
 			comment := JiraComment{
+				path.Base(repo),
+				json.MS(js, "key"),
 				json.MS(comment, "id"),
 				json.MS(comment, "author", "displayName"),
 				json.MS(comment, "author", "key"),
 				json.MT(timeFormat, comment, "created"),
 			}
-			issue.Comments = append(issue.Comments, comment)
+			err = commentWriter.Write(comment)
+			if err != nil {
+				return err
+			}
 		}
-		err = writer.Write(issue)
-		if err != nil {
 
-			return err
-		}
 		progress.Increment()
 	}
 	return nil
