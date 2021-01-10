@@ -60,7 +60,8 @@ func githubClone(store kv.KV, dest string) error {
 
 
 func gitClone(coDir string, org string, repoName string) error {
-	if _, err := os.Stat(coDir); os.IsNotExist(err) {
+	_, err := os.Stat(coDir)
+	if os.IsNotExist(err) {
 		gitClone := exec.Cmd{
 			Path: "/usr/bin/git",
 			Args: []string{
@@ -68,16 +69,26 @@ func gitClone(coDir string, org string, repoName string) error {
 				"clone",
 				"--filter=blob:none",
 				"--sparse",
-				"git://github.com/" + org + "/" + repoName + ".git",
+				"https://github.com/" + org + "/" + repoName + ".git",
 			},
 			Dir:    path.Dir(coDir),
 			Stdout: os.Stdout,
 			Stderr: os.Stderr,
 		}
-		err = gitClone.Run()
-		if err != nil {
-			return err
+		return gitClone.Run()
+	} else if err == nil {
+		gitFetch := exec.Cmd{
+			Path: "/usr/bin/git",
+			Args: []string{
+				"git",
+				"pull",
+			},
+			Dir:    coDir,
+			Stdout: os.Stdout,
+			Stderr: os.Stderr,
 		}
+		return gitFetch.Run()
+	} else {
+		return err
 	}
-	return nil
 }
