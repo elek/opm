@@ -12,9 +12,13 @@ type Test struct {
 
 func TestCsv(t *testing.T) {
 
-	csv, err := NewCswWriter("/tmp/test.csv")
+	csv, err := NewCswWriter("/tmp/test.csv", new(Test))
 	assert.Nil(t, err)
 
-	csv.Write(Test{"asd", 1})
-	csv.Close()
+	err = csv.Write(Test{"asd", 1})
+	assert.Nil(t, err)
+
+	err = csv.Close()
+	assert.Nil(t, err)
+
 }

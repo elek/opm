@@ -77,7 +77,6 @@ func jiraExtract(store kv.KV, dir string, project string, format string) error {
 		}
 	}
 	return output.Close()
-	return nil
 }
 
 type JiraIssue struct {

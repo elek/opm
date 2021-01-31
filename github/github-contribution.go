@@ -79,7 +79,7 @@ func extractContribution(store kv.KV, dest string, filter string, format string)
 					return err
 				}
 
-				output.Write(Contribution{
+				err = output.Write(Contribution{
 					Org:        org,
 					Repo:       repoName,
 					Type:       "PR_CREATED",
@@ -89,9 +89,13 @@ func extractContribution(store kv.KV, dest string, filter string, format string)
 					Author:     json.MS(pr, "author", "login"),
 				})
 
+				if err != nil {
+					return err
+				}
+
 				for _, comment := range json.L(json.M(pr, "comments", "nodes")) {
 
-					output.Write(Contribution{
+					err = output.Write(Contribution{
 						Org:        org,
 						Repo:       repoName,
 						Type:       "PR_COMMENTED",
@@ -100,11 +104,15 @@ func extractContribution(store kv.KV, dest string, filter string, format string)
 						Identifier: json.MNS(pr, "number"),
 						Author:     json.MS(comment, "author", "login"),
 					})
+					if err != nil {
+						return err
+					}
+
 				}
 
 				for _, review := range json.L(json.M(pr, "reviews", "nodes")) {
 
-					output.Write(Contribution{
+					err = output.Write(Contribution{
 						Org:        org,
 						Repo:       repoName,
 						Type:       "PR_REVIEW_" + json.MS(review, "state"),
@@ -113,11 +121,15 @@ func extractContribution(store kv.KV, dest string, filter string, format string)
 						Identifier: json.MNS(pr, "number"),
 						Author:     json.MS(review, "author", "login"),
 					})
+					if err != nil {
+						return err
+					}
+
 				}
 
 				if json.MB(pr, "merged") {
 
-					output.Write(Contribution{
+					err = output.Write(Contribution{
 						Org:        org,
 						Repo:       repoName,
 						Type:       "PR_MERGED",
@@ -126,6 +138,10 @@ func extractContribution(store kv.KV, dest string, filter string, format string)
 						Identifier: json.MNS(pr, "number"),
 						Author:     json.MS(pr, "mergedBy", "login"),
 					})
+					if err != nil {
+						return err
+					}
+
 				}
 			}
 

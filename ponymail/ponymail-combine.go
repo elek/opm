@@ -3,6 +3,7 @@ package ponymail
 import (
 	"github.com/elek/go-utils/json"
 	"github.com/elek/go-utils/kv"
+	"github.com/urfave/cli/v2"
 	"os"
 	"path"
 	"strconv"
@@ -10,17 +11,18 @@ import (
 )
 
 func init() {
-	//runner.App.Commands = append(runner.App.Commands, cli.Command{
-	//	Name: "mail-lists-combine",
-	//	Action: func(c *cli.Context) error {
-	//		store, err := kv.Create(c.Args().Get(0))
-	//		if err != nil {
-	//			return err
-	//		}
-	//		//return maillists(c.Args().Get(0))
-	//		return combine(store, "hadoop.apache.org", "private")
-	//	},
-	//})
+	cmd := cli.Command{
+		Name:        "combine",
+		Description: "Combine multiple month of archive to one file, can be opened with thunderbird",
+		Action: func(c *cli.Context) error {
+			store, err := kv.Create(c.Args().Get(0))
+			if err != nil {
+				return err
+			}
+			return combine(store, c.String("domain"), c.String("list"))
+		},
+	}
+	RegisterPonymail(cmd)
 
 }
 

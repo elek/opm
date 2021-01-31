@@ -8,37 +8,39 @@ import (
 	"github.com/elek/go-utils/kv"
 	"github.com/markbates/pkger"
 	"github.com/rs/zerolog/log"
+	"github.com/urfave/cli/v2"
 	"io/ioutil"
 	"strings"
 	"time"
 )
 
 func init() {
-	//runner.App.Commands = append(runner.App.Commands, cli.Command{
-	//	Name: "github-team",
-	//	Flags: []cli.Flag{
-	//		cli.StringFlag{
-	//			Name:  "org",
-	//			Value: "apache",
-	//			Usage: "Github organization",
-	//		},
-	//		cli.StringFlag{
-	//			Name:  "team",
-	//			Value: "",
-	//			Required: true,
-	//			Usage: "Name of the team to download",
-	//		},
-	//	},
-	//	Action: func(c *cli.Context) error {
-	//		store, err := kv.Create(c.Args().Get(0))
-	//		if err != nil {
-	//			return err
-	//		}
-	//
-	//		return fetchTeam(store, c.String("org"), c.String("team"))
-	//	},
-	//})
+	repo := cli.Command{
+		Name:        "repo",
+		Description: "Download team data from github",
+		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name:  "org",
+				Value: "apache",
+				Usage: "Github organization",
+			},
+			&cli.StringFlag{
+				Name:     "team",
+				Value:    "",
+				Required: true,
+				Usage:    "Name of github team to download",
+			},
+		},
+		Action: func(c *cli.Context) error {
+			store, err := kv.Create(c.Args().Get(0))
+			if err != nil {
+				return err
+			}
 
+			return fetchTeam(store, c.String("org"), c.String("team"))
+		},
+	}
+	RegisterGithubUpdate(repo)
 }
 
 func fetchTeam(store kv.KV, org string, team string) error {
