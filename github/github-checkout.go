@@ -67,8 +67,6 @@ func gitClone(coDir string, org string, repoName string) error {
 			Args: []string{
 				"git",
 				"clone",
-				"--filter=blob:none",
-				"--sparse",
 				"https://github.com/" + org + "/" + repoName + ".git",
 			},
 			Dir:    path.Dir(coDir),
