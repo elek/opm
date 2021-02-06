@@ -43,8 +43,8 @@ type Contribution struct {
 	Identifier    string
 	SubIdentifier string
 	Date          int64
-	Own           bool
 	Author        string
+	Owner         string
 }
 
 func extractContribution(store kv.KV, dest string, filter string, format string) error {
@@ -84,9 +84,9 @@ func extractContribution(store kv.KV, dest string, filter string, format string)
 					Repo:       repoName,
 					Type:       "PR_CREATED",
 					Date:       json.MT(time.RFC3339, pr, "createdAt"),
-					Own:        true,
 					Identifier: json.MNS(pr, "number"),
 					Author:     json.MS(pr, "author", "login"),
+					Owner:      json.MS(pr, "author", "login"),
 				})
 
 				if err != nil {
@@ -100,9 +100,9 @@ func extractContribution(store kv.KV, dest string, filter string, format string)
 						Repo:       repoName,
 						Type:       "PR_COMMENTED",
 						Date:       json.MT(time.RFC3339, comment, "createdAt"),
-						Own:        json.MS(pr, "author", "login") == json.MS(comment, "author", "login"),
 						Identifier: json.MNS(pr, "number"),
 						Author:     json.MS(comment, "author", "login"),
+						Owner:      json.MS(pr, "author", "login"),
 					})
 					if err != nil {
 						return err
@@ -117,9 +117,9 @@ func extractContribution(store kv.KV, dest string, filter string, format string)
 						Repo:       repoName,
 						Type:       "PR_REVIEW_" + json.MS(review, "state"),
 						Date:       json.MT(time.RFC3339, review, "updatedAt"),
-						Own:        json.MS(pr, "author", "login") == json.MS(review, "author", "login"),
 						Identifier: json.MNS(pr, "number"),
 						Author:     json.MS(review, "author", "login"),
+						Owner:      json.MS(pr, "author", "login"),
 					})
 					if err != nil {
 						return err
@@ -134,9 +134,9 @@ func extractContribution(store kv.KV, dest string, filter string, format string)
 						Repo:       repoName,
 						Type:       "PR_MERGED",
 						Date:       json.MT(time.RFC3339, pr, "mergedAt"),
-						Own:        json.MS(pr, "author", "login") == json.MS(pr, "mergedBy", "login"),
 						Identifier: json.MNS(pr, "number"),
 						Author:     json.MS(pr, "mergedBy", "login"),
+						Owner:      json.MS(pr, "author", "login"),
 					})
 					if err != nil {
 						return err
