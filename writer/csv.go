@@ -1,6 +1,7 @@
 package writer
 
 import (
+	"compress/gzip"
 	csv2 "encoding/csv"
 	"fmt"
 	"github.com/rs/zerolog/log"
@@ -16,6 +17,7 @@ type CsvWriter struct {
 	headerWritten bool
 	writer        *csv2.Writer
 	file          *os.File
+	gzip          bool
 }
 
 func NewCswWriter(path string, entity interface{}) (*CsvWriter, error) {
@@ -31,6 +33,22 @@ func NewCswWriter(path string, entity interface{}) (*CsvWriter, error) {
 	result.file = reposFile
 	return &result, nil
 }
+
+
+func NewCswGzWriter(path string, entity interface{}) (*CsvWriter, error) {
+	result := CsvWriter{}
+	reposFile, err := os.Create(path + ".gz")
+	if err != nil {
+		return &result, err
+	}
+
+	csv := csv2.NewWriter(gzip.NewWriter(reposFile))
+
+	result.writer = csv
+	result.file = reposFile
+	return &result, nil
+}
+
 
 func (writer *CsvWriter) Write(data interface{}) error {
 	t := reflect.TypeOf(data)

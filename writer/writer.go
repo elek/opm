@@ -13,7 +13,7 @@ func NewWriter(name string, format string, entitiy interface{}) (Writer, error) 
 	if format == "parquet" {
 		return NewParquetWriter(name+".parquet", entitiy)
 	} else if format == "csv" {
-		return NewCswWriter(name+".csv", entitiy)
+		return NewCswGzWriter(name+".csv", entitiy)
 	} else {
 		return nil, errors.New("No such writer implementation: " + format + ". Use parquet or csv.")
 	}
