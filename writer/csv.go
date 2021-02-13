@@ -5,6 +5,7 @@ import (
 	csv2 "encoding/csv"
 	"fmt"
 	"github.com/rs/zerolog/log"
+	"io"
 	"os"
 	"reflect"
 	"strconv"
@@ -16,7 +17,7 @@ type CsvWriter struct {
 	path          string
 	headerWritten bool
 	writer        *csv2.Writer
-	file          *os.File
+	file          io.WriteCloser
 	gzip          bool
 }
 
@@ -42,10 +43,11 @@ func NewCswGzWriter(path string, entity interface{}) (*CsvWriter, error) {
 		return &result, err
 	}
 
-	csv := csv2.NewWriter(gzip.NewWriter(reposFile))
+	result.file = gzip.NewWriter(reposFile)
+
+	csv := csv2.NewWriter(result.file)
 
 	result.writer = csv
-	result.file = reposFile
 	return &result, nil
 }
 
