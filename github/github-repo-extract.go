@@ -12,13 +12,6 @@ import (
 func init() {
 	cmd := cli.Command{
 		Name: "repo",
-		Flags: []cli.Flag{
-			&cli.StringFlag{
-				Name:  "org",
-				Value: "apache",
-				Usage: "Github organization",
-			},
-		},
 		Action: func(c *cli.Context) error {
 			store, err := runner.CreateRepo(c)
 			if err != nil {
@@ -28,7 +21,7 @@ func init() {
 			if err != nil {
 				return err
 			}
-			return githubRepoExtract(store, dest, c.String("org"),c.String("format"))
+			return githubRepoExtract(store, dest, c.String("format"))
 		},
 	}
 	RegisterGithubExtract(cmd)
@@ -36,6 +29,7 @@ func init() {
 }
 
 type Repo struct {
+	Org             string
 	Name            string
 	WatcherCount    int
 	StargazersCount int
@@ -44,31 +38,38 @@ type Repo struct {
 	ForksCount      int
 }
 
-func githubRepoExtract(store kv.KV, dir string, org string, format string) error {
-	repos, err := store.List(RepoDir(org))
+func githubRepoExtract(store kv.KV, dir string, format string) error {
+	repoWriter, err := writer.NewWriter(path.Join(dir, "github-repo"), format, new(Repo))
 	if err != nil {
 		return err
 	}
 
-	repoWriter, err := writer.NewWriter("github-repo", format, new(Repo))
+	orgs, err := store.List(RepoDir(""))
 	if err != nil {
 		return err
 	}
+	for _, org := range orgs {
 
-	for _, repo := range repos {
-		js, err := json.AsJson(store.Get(RepoFile(org, path.Base(repo))))
+		repos, err := store.List(org)
 		if err != nil {
 			return err
 		}
-		repoWriter.Write(Repo{
-			json.MS(js, "name"),
-			json.MN(js, "watchers_count"),
-			json.MN(js, "stargazers_count"),
-			json.MN(js, "size"),
-			json.MN(js, "open_issues_count"),
-			json.MN(js, "forks_count"),
-		})
 
+		for _, repo := range repos {
+			js, err := json.AsJson(store.Get(repo))
+			if err != nil {
+				return err
+			}
+			repoWriter.Write(Repo{
+				json.MS(js, "owner", "login"),
+				json.MS(js, "name"),
+				json.MN(js, "subscribers_count"),
+				json.MN(js, "stargazers_count"),
+				json.MN(js, "size"),
+				json.MN(js, "open_issues_count"),
+				json.MN(js, "forks_count"),
+			})
+		}
 	}
 	err = repoWriter.Close()
 	if err != nil {
