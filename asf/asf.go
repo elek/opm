@@ -68,6 +68,10 @@ func asfExtract(store kv.KV, destDir string) error {
 	if err != nil {
 		return err
 	}
+	err = extractProjects(store, destDir)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -75,6 +79,39 @@ type ApacheMembership struct {
 	ApacheName string
 	Project    string
 	Role       string
+}
+
+type ApacheProject struct {
+	Name        string
+	Description string
+	Established string
+}
+
+func extractProjects(store kv.KV, destDir string) error {
+	dest, err := writer.NewWriter(path.Join(destDir, "asf-project"), "csv", new(ApacheProject))
+	if err != nil {
+		return err
+	}
+	defer dest.Close()
+
+	keys, err := store.List(path.Join("asf", "committee"))
+	if err != nil {
+		return err
+	}
+	for _, key := range keys {
+		projectInfo, err := js.AsJson(store.Get(key))
+		if err != nil {
+			return err
+		}
+
+		dest.Write(ApacheProject{
+			Name:        path.Base(key),
+			Description: js.MS(projectInfo, "description"),
+			Established: js.MS(projectInfo, "established"),
+		})
+
+	}
+	return nil
 }
 
 func extractMembership(store kv.KV, destDir string) error {
