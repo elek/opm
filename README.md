@@ -27,8 +27,14 @@ Downloading mailing list stats:
 
 ```
 #For private lists use export PONYMAIL_COOKIE=...
+
+#Use filter if you are not interested about all mail lists
 opm ponymail getlists --filter=ozone.apache.org
-opm ponymail update 
+
+#Download raw data
+opm ponymail update
+
+#Extract csv files 
 opm ponymail extract 
 ```
 
