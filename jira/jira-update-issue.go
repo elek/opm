@@ -25,28 +25,28 @@ func init() {
 			if err != nil {
 				return err
 			}
-			return jira(store, c.String("query"))
-		},
-		Flags: []cli.Flag{
-			&cli.StringFlag{
-				Name: "query",
-			},
+			return jira(store)
 		},
 	}
 	RegisterJiraUpdate(cmd)
 
 }
 
-func jira(store kv.KV, query string) error {
+func jira(store kv.KV) error {
 	jiraClient := jirautil.Jira{
 		Url: "https://issues.apache.org/jira",
 	}
 
 	inc := incremental.Incremental{
 		Store: store,
-		Key:   path.Join("jira", "last"),
+		Key:   path.Join("jira", "issues-last"),
 	}
 
+	queryBytes, err := store.Get(path.Join("jira", "issues-query"))
+	if err != nil {
+		return err
+	}
+	query := string(queryBytes)
 	retrieved := math.MaxInt32
 
 	updater := func(lastUpdate time.Time) (time.Time, error) {
@@ -78,7 +78,7 @@ func jira(store kv.KV, query string) error {
 				return lastTime, errors.Wrap(err, "Time couldn't parse "+updated)
 			}
 			parts := strings.Split(key, "-")
-			store.Put(path.Join("jira", parts[0], key), content)
+			store.Put(path.Join("jira", "issues", parts[0], key), content)
 		}
 		return lastTime, nil
 	}
@@ -89,7 +89,7 @@ func jira(store kv.KV, query string) error {
 		if err != nil {
 			return errors.Wrap(err, "Error on getting new issues")
 		}
-		log.Info().Msgf("Retrieved %d entries, up to date until %s", retrieved, OrPanic(store.Get(path.Join("jira", "last"))))
+		log.Info().Msgf("Retrieved %d entries, up to date until %s", retrieved, OrPanic(store.Get(path.Join("jira", "issues-last"))))
 		if retrieved > 0 {
 			time.Sleep(2 * time.Second)
 		}

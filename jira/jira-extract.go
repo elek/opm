@@ -15,13 +15,6 @@ import (
 func init() {
 	cmd := cli.Command{
 		Name: "issue",
-		Flags: []cli.Flag{
-			&cli.StringFlag{
-				Name:  "project",
-				Value: "",
-				Usage: "Optional jira project filter",
-			},
-		},
 		Action: func(c *cli.Context) error {
 			store, err := runner.CreateRepo(c)
 			if err != nil {
@@ -31,14 +24,14 @@ func init() {
 			if err != nil {
 				return err
 			}
-			return jiraExtract(store, dest, c.String("project"), c.String("format"))
+			return jiraExtract(store, dest, c.String("format"))
 		},
 	}
 	RegisterJiraExtract(cmd)
 
 }
 
-func jiraExtract(store kv.KV, dir string, project string, format string) error {
+func jiraExtract(store kv.KV, dir string, format string) error {
 
 	store, err := kv.Create(dir)
 	if err != nil {
@@ -49,32 +42,31 @@ func jiraExtract(store kv.KV, dir string, project string, format string) error {
 	if err != nil {
 		return err
 	}
+	defer output.Close()
 
 	commentOutput, err := writer.NewWriter("jira-comment", format, new(JiraComment))
 	if err != nil {
 		return err
 	}
+	defer commentOutput.Close()
 
-	if project == "" {
-		repos, err := store.List(ProjectDir())
+	contributionOutput, err := writer.NewWriter("jira-contribution", format, new(JiraComment))
+	if err != nil {
+		return err
+	}
+	defer contributionOutput.Close()
+
+	projects, err := store.List(path.Join("jira", "issues"))
+	if err != nil {
+		return err
+	}
+	for _, project := range projects {
+		log.Info().Msgf("Processing project %s", project)
+		err := exportProject(store, output, commentOutput, contributionOutput, path.Base(project))
 		if err != nil {
 			return err
 		}
 
-		for _, repo := range repos {
-			log.Info().Msgf("Processing repo %s", repo)
-			err := exportRepo(store, output, commentOutput, repo)
-			if err != nil {
-				return err
-			}
-
-		}
-	} else {
-		log.Info().Msgf("Processing repo %s", IssueDir(project))
-		err := exportRepo(store, output, commentOutput, IssueDir(project))
-		if err != nil {
-			return err
-		}
 	}
 	return output.Close()
 }
@@ -108,8 +100,18 @@ type JiraComment struct {
 	Created       int64  `parquet:"name=created, type=TIMESTAMP_MILLIS"`
 }
 
-func exportRepo(store kv.KV, issueWriter writer.Writer, commentWriter writer.Writer, repo string) error {
-	repoKey := IssueDir(path.Base(repo))
+type JiraContribution struct {
+	Project       string
+	Type          string
+	Identifier    string
+	SubIdentifier string
+	Date          int64
+	Author        string
+	Owner         string
+}
+
+func exportProject(store kv.KV, issueWriter writer.Writer, commentWriter writer.Writer, contributionWriter writer.Writer, project string) error {
+	repoKey := path.Join("jira", "issues", project)
 	progress := util.CreateProgress()
 	prs, err := store.List(repoKey)
 	if err != nil {
@@ -123,7 +125,7 @@ func exportRepo(store kv.KV, issueWriter writer.Writer, commentWriter writer.Wri
 		}
 		n, _ := strconv.Atoi(json.MS(js, "number"))
 		issue := JiraIssue{
-			Project:         path.Base(repo),
+			Project:         project,
 			Key:             json.MS(js, "key"),
 			Id:              int64(n),
 			Summary:         json.MS(js, "fields", "summary"),
@@ -147,16 +149,42 @@ func exportRepo(store kv.KV, issueWriter writer.Writer, commentWriter writer.Wri
 			return err
 		}
 
+		err = contributionWriter.Write(JiraContribution{
+			Project:       project,
+			Type:          "JIRA_CREATED",
+			Identifier:    json.MS(js, "key"),
+			SubIdentifier: "",
+			Date:          json.MT(timeFormat, js, "fields", "created"),
+			Author:        json.MS(js, "fields", "creator", "key"),
+			Owner:         json.MS(js, "fields", "creator", "key"),
+		})
+		if err != nil {
+			return err
+		}
+
 		for _, comment := range json.L(json.M(js, "fields", "comment", "comments")) {
-			comment := JiraComment{
-				path.Base(repo),
+
+			err = commentWriter.Write(JiraComment{
+				project,
 				json.MS(js, "key"),
 				json.MS(comment, "id"),
 				json.MS(comment, "author", "displayName"),
 				json.MS(comment, "author", "key"),
 				json.MT(timeFormat, comment, "created"),
+			})
+			if err != nil {
+				return err
 			}
-			err = commentWriter.Write(comment)
+
+			err = contributionWriter.Write(JiraContribution{
+				Project:       project,
+				Type:          "JIRA_COMMENT",
+				Identifier:    json.MS(js, "key"),
+				SubIdentifier: json.MS(comment, "id"),
+				Date:          json.MT(timeFormat, comment, "created"),
+				Author:        json.MS(comment, "author", "key"),
+				Owner:         json.MS(js, "fields", "creator", "key"),
+			})
 			if err != nil {
 				return err
 			}
