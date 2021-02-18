@@ -59,9 +59,11 @@ func orgFetch(store kv.KV, org string) error {
 	}
 	for _, repo := range list {
 		repoName := path.Base(repo)
-		err = githubFetch(store, org, repoName)
-		if err != nil {
-			return err
+		if !store.Contains(path.Join("github", "prs", org, repoName, "noupdate")) {
+			err = githubFetch(store, org, repoName)
+			if err != nil {
+				return err
+			}
 		}
 	}
 	return nil
