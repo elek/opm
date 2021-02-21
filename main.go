@@ -10,6 +10,7 @@ import (
 	"github.com/elek/opm/ponymail"
 	_ "github.com/elek/opm/ponymail"
 	"github.com/elek/opm/runner"
+	"github.com/elek/opm/youtube"
 	"github.com/rs/zerolog"
 	"os"
 	"runtime/pprof"
@@ -37,6 +38,7 @@ func main() {
 	runner.App.Commands = append(runner.App.Commands, jira.CreateJiraCommand())
 	runner.App.Commands = append(runner.App.Commands, ponymail.CreatePonymailCommand())
 	runner.App.Commands = append(runner.App.Commands, asf.CreateAsfCommand())
+	runner.App.Commands = append(runner.App.Commands, youtube.CreateYoutubeCommand())
 	err := runner.App.Run(os.Args)
 	if err != nil {
 		fmt.Printf("%+v", err)
