@@ -82,7 +82,9 @@ func (writer *CsvWriter) Write(data interface{}) error {
 		case int64:
 			values[i] = fmt.Sprintf("%d", v)
 		case *int64:
-			values[i] = fmt.Sprintf("%d", v)
+			if v != nil {
+				values[i] = fmt.Sprintf("%d", *v)
+			}
 		case time.Time:
 			values[i] = v.Format(time.RFC3339)
 		case bool:

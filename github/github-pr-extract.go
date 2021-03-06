@@ -36,19 +36,21 @@ func init() {
 }
 
 type GithubPr struct {
-	Repo      string `parquet:"name=repo, type=UTF8, encoding=PLAIN_DICTIONARY"`
-	Number    int32  `parquet:"name=number, type=INT32"`
-	CreatedAt int64  `parquet:"name=createdAt, type=TIMESTAMP_MILLIS"`
-	UpdatedAt *int64 `parquet:"name=updatedAt, type=TIMESTAMP_MILLIS"`
-	ClosedAt  *int64 `parquet:"name=closedAt, type=TIMESTAMP_MILLIS"`
-	Merged    bool   `parquet:"name=merged, type=BOOLEAN"`
-	Closed    bool   `parquet:"name=closed, type=BOOLEAN"`
-	IsDraft   bool   `parquet:"name=isDraft, type=BOOLEAN"`
-	Author    string `parquet:"name=author, type=UTF8, encoding=PLAIN_DICTIONARY"`
-	Reviews   int32  `parquet:"name=reviews, type=INT32"`
-	Comments  int32  `parquet:"name=comments, type=INT32"`
-	MergedBy  string `parquet:"name=mergedBy, type=UTF8, encoding=PLAIN_DICTIONARY"`
-	Title     string `parquet:"name=title, type=UTF8, encoding=PLAIN"`
+	Repo           string  `parquet:"name=repo, type=UTF8, encoding=PLAIN_DICTIONARY"`
+	Number         int32   `parquet:"name=number, type=INT32"`
+	CreatedAt      int64   `parquet:"name=createdAt, type=TIMESTAMP_MILLIS"`
+	UpdatedAt      *int64  `parquet:"name=updatedAt, type=TIMESTAMP_MILLIS"`
+	ClosedAt       *int64  `parquet:"name=closedAt, type=TIMESTAMP_MILLIS"`
+	Merged         bool    `parquet:"name=merged, type=BOOLEAN"`
+	Closed         bool    `parquet:"name=closed, type=BOOLEAN"`
+	IsDraft        bool    `parquet:"name=isDraft, type=BOOLEAN"`
+	Author         string  `parquet:"name=author, type=UTF8, encoding=PLAIN_DICTIONARY"`
+	Reviews        int32   `parquet:"name=reviews, type=INT32"`
+	Comments       int32   `parquet:"name=comments, type=INT32"`
+	MergedBy       string  `parquet:"name=mergedBy, type=UTF8, encoding=PLAIN_DICTIONARY"`
+	Title          string  `parquet:"name=title, type=UTF8, encoding=PLAIN"`
+	FirstResponse  *int64  `parquet:"name=firtsResponse, type=UTF8, encoding=PLAIN"`
+	FirstResponder *string `parquet:"name=firstResponder, type=UTF8, encoding=PLAIN_DICTIONARY"`
 }
 
 type GithubPrComment struct {
@@ -108,6 +110,7 @@ func githubPrExtract(store kv.KV, dir string, org string, format string) error {
 				MergedBy:  json.MS(js, "mergedBy", "login"),
 				Title:     json.MS(js, "title"),
 			}
+
 			if json.MS(js, "closedAt") != "" {
 				closedAt, err := time.Parse(time.RFC3339, json.MS(js, "closedAt"))
 				if err != nil {
@@ -126,31 +129,51 @@ func githubPrExtract(store kv.KV, dir string, org string, format string) error {
 				pr.UpdatedAt = &val
 			}
 
-			err = dest.Write(pr)
-			if err != nil {
-				return err
-			}
+			first := int64(0)
+			firstResponder := ""
 
 			comments := json.M(js, "comments", "nodes")
 			for _, comment := range json.L(comments) {
 
-				commentCreated, err := time.Parse(time.RFC3339, json.MS(comment, "createdAt"))
-				if err != nil {
-					return err
+				commentCreated := json.MT(time.RFC3339, comment, "createdAt")
+				actor := json.MS(comment, "author", "login")
+				if (first == 0 || first > commentCreated) && (actor != "hadoop-yetus") {
+					first = commentCreated
+					firstResponder = json.MS(comment, "author", "login")
 				}
 
 				err = commentsDest.Write(GithubPrComment{
 					org,
 					path.Base(repo),
 					prNumber,
-					commentCreated.Unix() * 1000,
-					json.MS(comment, "author", "login"),
+					commentCreated,
+					actor,
 					json.MS(comment, "authorAssociation"),
 				})
 				if err != nil {
 					return err
 				}
 			}
+
+			for _, review := range json.L(json.M(js, "reviews", "nodes")) {
+				timestamp := json.MT(time.RFC3339, review, "updatedAt")
+				actor := json.MS(review, "author", "login")
+				if (first == 0 || first > timestamp) && (actor != "hadoop-yetus") {
+					first = timestamp
+					firstResponder = actor
+				}
+			}
+
+			if first != 0 {
+				pr.FirstResponse = &first
+				pr.FirstResponder = &firstResponder
+			}
+
+			err = dest.Write(pr)
+			if err != nil {
+				return err
+			}
+
 		}
 
 	}
