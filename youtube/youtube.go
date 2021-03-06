@@ -114,12 +114,14 @@ func CreateYoutubeCommand() *cli.Command {
 }
 
 type YoutubeVideo struct {
-	Account     string
-	Id          string
-	Title       string
-	PublishedAt int64
-	LikeCount   int
-	ViewCount   int
+	Account           string
+	AccountId         string
+	PlaylistAccountId string
+	Id                string
+	Title             string
+	PublishedAt       int64
+	LikeCount         int
+	ViewCount         int
 }
 type YoutubePlaylistItem struct {
 	Account       string
@@ -151,6 +153,8 @@ func extract(store kv.KV, dest string) error {
 		if err != nil {
 			return err
 		}
+		accountId, err := store.Get(path.Join(account, "ytid"))
+
 		for _, videoKey := range videos {
 			video, err := js.AsJson(store.Get(videoKey))
 			if err != nil {
@@ -166,12 +170,14 @@ func extract(store kv.KV, dest string) error {
 			}
 
 			videosDest.Write(YoutubeVideo{
-				Account:     path.Base(account),
-				Id:          js.MS(video, "id"),
-				Title:       js.MS(video, "snippet", "title"),
-				PublishedAt: js.MT("2006-01-02T15:04:05Z", video, "snippet", "publishedAt"),
-				LikeCount:   likeCount,
-				ViewCount:   viewCount,
+				Account:           path.Base(account),
+				AccountId:         string(accountId),
+				PlaylistAccountId: js.MS(video, "snippet", "channelId"),
+				Id:                js.MS(video, "id"),
+				Title:             js.MS(video, "snippet", "title"),
+				PublishedAt:       js.MT("2006-01-02T15:04:05Z", video, "snippet", "publishedAt"),
+				LikeCount:         likeCount,
+				ViewCount:         viewCount,
 			})
 		}
 
