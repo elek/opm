@@ -1,10 +1,12 @@
 package github
 
 import (
+	util "github.com/elek/go-utils"
 	"github.com/elek/go-utils/json"
 	"github.com/elek/go-utils/kv"
 	"github.com/elek/opm/runner"
 	"github.com/elek/opm/writer"
+	"github.com/rs/zerolog/log"
 	"github.com/urfave/cli/v2"
 	"path"
 	"time"
@@ -19,12 +21,17 @@ func init() {
 				Value: "apache",
 				Usage: "Github organization",
 			},
+			&cli.StringFlag{
+				Name:  "repo",
+				Usage: "Repository url",
+			},
 		},
 		Action: func(c *cli.Context) error {
 			store, err := runner.CreateRepo(c);
 			if err != nil {
 				return err
 			}
+			defer store.Close()
 			dest,err := runner.DestDir(c);
 			if err != nil {
 				return err
@@ -64,6 +71,8 @@ type GithubPrComment struct {
 
 func githubPrExtract(store kv.KV, dir string, org string, format string) error {
 
+	p := util.CreateProgress()
+	defer p.End()
 	repos, err := store.List(RepoDir(org))
 	if err != nil {
 		return err
@@ -80,15 +89,10 @@ func githubPrExtract(store kv.KV, dir string, org string, format string) error {
 	}
 
 	for _, repo := range repos {
-		println(repo)
-		prs, err := store.List(PrDir(org, path.Base(repo)))
-		if err != nil {
-			continue
-			//return err
-		}
+		log.Info().Msg("Extracting repo: " + org + "/" + repo)
 
-		for _, pr := range prs {
-			js, err := json.AsJson(store.Get(pr))
+		err = store.IterateValues(PrDir(org, path.Base(repo)), func(key string, prValue []byte) error {
+			js, err := json.AsJson(prValue, nil)
 			if err != nil {
 				return err
 			}
@@ -135,7 +139,7 @@ func githubPrExtract(store kv.KV, dir string, org string, format string) error {
 			comments := json.M(js, "comments", "nodes")
 			for _, comment := range json.L(comments) {
 
-				commentCreated := json.MT(time.RFC3339, comment, "createdAt")
+				commentCreated := json.ME(time.RFC3339, comment, "createdAt")
 				actor := json.MS(comment, "author", "login")
 				if (first == 0 || first > commentCreated) && (actor != "hadoop-yetus") {
 					first = commentCreated
@@ -156,7 +160,7 @@ func githubPrExtract(store kv.KV, dir string, org string, format string) error {
 			}
 
 			for _, review := range json.L(json.M(js, "reviews", "nodes")) {
-				timestamp := json.MT(time.RFC3339, review, "updatedAt")
+				timestamp := json.ME(time.RFC3339, review, "updatedAt")
 				actor := json.MS(review, "author", "login")
 				if (first == 0 || first > timestamp) && (actor != "hadoop-yetus") {
 					first = timestamp
@@ -173,7 +177,11 @@ func githubPrExtract(store kv.KV, dir string, org string, format string) error {
 			if err != nil {
 				return err
 			}
-
+			p.Increment()
+			return nil
+		})
+		if err != nil {
+			return err
 		}
 
 	}

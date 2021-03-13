@@ -12,6 +12,7 @@ require (
 	github.com/stretchr/testify v1.6.1
 	github.com/urfave/cli v1.22.5
 	github.com/urfave/cli/v2 v2.3.0
+	github.com/valyala/fastjson v1.6.3
 	github.com/xitongsys/parquet-go v1.5.3
 	github.com/xitongsys/parquet-go-source v0.0.0-20200817004010-026bad9b25d0
 	golang.org/x/net v0.0.0-20200222125558-5a598a2470a0
