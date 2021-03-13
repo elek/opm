@@ -133,9 +133,9 @@ func exportProject(store kv.KV, issueWriter writer.Writer, commentWriter writer.
 			Reporter:        json.MSP(js, "fields", "reporter", "key"),
 			Assignee:        json.MSP(js, "fields", "assignee", "key"),
 			AssigneeDisplay: json.MSP(js, "fields", "assignee", "displayName"),
-			Created:         json.MT(timeFormat, js, "fields", "created"),
-			Updated:         json.MT(timeFormat, js, "fields", "updated"),
-			Resolved:        json.MTP(timeFormat, js, "fields", "resolutiondate"),
+			Created:         json.ME(timeFormat, js, "fields", "created"),
+			Updated:         json.ME(timeFormat, js, "fields", "updated"),
+			Resolved:        json.MEP(timeFormat, js, "fields", "resolutiondate"),
 			Resolution:      json.MSP(js, "fields", "resolution", "name"),
 			Status:          json.MS(js, "fields", "status", "name"),
 			Votes:           json.MN32(js, "fields", "votes", "votes"),
@@ -154,7 +154,7 @@ func exportProject(store kv.KV, issueWriter writer.Writer, commentWriter writer.
 			Type:          "JIRA_CREATED",
 			Identifier:    json.MS(js, "key"),
 			SubIdentifier: "",
-			Date:          json.MT(timeFormat, js, "fields", "created"),
+			Date:          json.ME(timeFormat, js, "fields", "created"),
 			Author:        json.MS(js, "fields", "creator", "key"),
 			Owner:         json.MS(js, "fields", "creator", "key"),
 		})
@@ -170,7 +170,7 @@ func exportProject(store kv.KV, issueWriter writer.Writer, commentWriter writer.
 				json.MS(comment, "id"),
 				json.MS(comment, "author", "displayName"),
 				json.MS(comment, "author", "key"),
-				json.MT(timeFormat, comment, "created"),
+				json.ME(timeFormat, comment, "created"),
 			})
 			if err != nil {
 				return err
@@ -181,7 +181,7 @@ func exportProject(store kv.KV, issueWriter writer.Writer, commentWriter writer.
 				Type:          "JIRA_COMMENT",
 				Identifier:    json.MS(js, "key"),
 				SubIdentifier: json.MS(comment, "id"),
-				Date:          json.MT(timeFormat, comment, "created"),
+				Date:          json.ME(timeFormat, comment, "created"),
 				Author:        json.MS(comment, "author", "key"),
 				Owner:         json.MS(js, "fields", "creator", "key"),
 			})

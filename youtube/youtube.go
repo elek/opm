@@ -175,7 +175,7 @@ func extract(store kv.KV, dest string) error {
 				PlaylistAccountId: js.MS(video, "snippet", "channelId"),
 				Id:                js.MS(video, "id"),
 				Title:             js.MS(video, "snippet", "title"),
-				PublishedAt:       js.MT("2006-01-02T15:04:05Z", video, "snippet", "publishedAt"),
+				PublishedAt:       js.ME("2006-01-02T15:04:05Z", video, "snippet", "publishedAt"),
 				LikeCount:         likeCount,
 				ViewCount:         viewCount,
 			})
