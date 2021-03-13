@@ -8,17 +8,22 @@ import (
 )
 
 func CreateRepo(c *cli.Context) (kv.KV, error) {
-	path, err := os.Getwd()
-	if err != nil {
-		return nil, err
+	var err error
+	path := ""
+	if c.String("repo") != "" {
+		path = c.String("repo")
+	} else {
+		path, err = os.Getwd()
+		if err != nil {
+			return nil, err
+		}
 	}
 	log.Info().Msg("Opening local data repository: " + path)
-	return &kv.DirKV{
-		Path: path,
-	}, nil
+	return kv.Create(path)
 }
 
 func DestDir(c *cli.Context) (string, error) {
+
 	path, err := os.Getwd()
 	if err != nil {
 		return "", err
